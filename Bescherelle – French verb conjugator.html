@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bescherelle – French verb conjugator</title>
+<style>
+:root{--bg:#0a0a0b;--card:#151517;--ink:#f5f2ed;--mut:#9b958c;--acc:#ff7a1a;--line:#2a2a2e;--mk:#ff7a1a;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(900px 420px at 50% -120px,rgba(255,122,26,.22),transparent 70%),var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:44px 16px 56px}
+h1{font:700 3rem/1.05 "Iowan Old Style",Georgia,serif;margin:0;color:var(--ink);letter-spacing:-1px}h1::after{content:".";color:var(--acc)}
+.sub{color:var(--mut);margin:6px 0 20px}
+.bar{display:flex;gap:8px}
+input{flex:1;min-width:0;font:inherit;font-size:1.15rem;padding:15px 18px;border:2px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);transition:border-color .15s,box-shadow .15s}input::placeholder{color:var(--mut)}
+input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 4px rgba(255,122,26,.18)}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 14px;transition:border-color .15s,color .15s,transform .1s}button:hover{border-color:var(--acc);color:var(--acc)}button:active{transform:scale(.97)}
+#go{background:var(--acc);color:#0a0a0b;border:0;border-radius:14px;padding:0 26px;font-weight:700}#go:hover{color:#0a0a0b;filter:brightness(1.1)}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0;align-items:center;color:var(--mut);font-size:.9rem}
+button.on,button.on:hover{background:var(--acc);color:#0a0a0b;border-color:var(--acc);font-weight:600}
+.head{background:linear-gradient(135deg,rgba(255,122,26,.12),transparent 60%),var(--card);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:16px;padding:20px 24px;margin:18px 0}
+.head h2{font:700 2.4rem/1.1 "Iowan Old Style",Georgia,serif;margin:0 0 10px}
+.pills{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--mut);font-size:.92rem}
+.pills b{color:var(--ink)}
+.found{margin-top:10px;font-size:.95rem}
+.note{margin-top:10px;font-size:.88rem;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.t{background:var(--card);border:1px solid var(--line);border-top:2px solid var(--acc);border-radius:14px;padding:14px 18px 16px;transition:transform .15s,border-color .15s}.t:hover{transform:translateY(-2px);border-color:var(--acc)}
+.t h3{margin:0 0 10px;font-size:.76rem;text-transform:uppercase;letter-spacing:.12em;color:var(--acc)}
+.t div{padding:2px 0}
+.t b{font-weight:600}
+.m{background:var(--mk);color:#0a0a0b;border-radius:5px;padding:0 5px}
+.empty{color:var(--mut);text-align:center;padding:30px 0}h1{cursor:pointer}.tag{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--acc);font-weight:700}.vl{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:2px 16px;margin:12px 0 16px}.sec{margin:28px 0 10px;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}.chips{display:flex;flex-wrap:wrap;gap:8px}.tips{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:30px}.tips div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;color:var(--mut);font-size:.92rem}.tips b{display:block;color:var(--acc);margin-bottom:4px;font-size:1rem}
+</style>
+</head>
+<body>
+<main>
+<h1>Bescherelle</h1>
+<p class="sub">French verb conjugator. Type any form of a verb, infinitive or already conjugated, and it finds the verb.</p>
+<div class="bar"><input id="q" placeholder="e.g. mangeons, j’ai vu, serais, vont…" autocomplete="off" autocapitalize="none" spellcheck="false"><button id="go">Search</button></div>
+<div class="row"><span>Try:</span>
+<button data-q="mangeons">mangeons</button><button data-q="j’ai vu">j’ai vu</button><button data-q="serais">serais</button><button data-q="vont">vont</button><button data-q="fit">fit</button><button data-q="appelle">appelle</button><button data-q="reçu">reçu</button></div>
+<div id="out"></div>
+</main>
+<script>
+const V={},E={a:"ai as a âmes âtes èrent",i:"is is it îmes îtes irent",u:"us us ut ûmes ûtes urent",in:"ins ins int înmes întes inrent"};
+const sp=s=>s.split(" "),st=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+const eq=(a,b,l)=>l?st(a)===st(b):a===b;
+const Jn=(s,e,c)=>c&&/^[aoâ]/.test(e)?s.replace(/c$/,"ç").replace(/g$/,"ge"):s;
+function R(pre,base,pres,imp,fut,sub,pp,ps,o={}){for(const p of pre.split(",")){const x=p=="_"?"":p,a=s=>sp(s).map(w=>x+w),[s1,s2]=sub.split("/"),q=ps.split(":");
+V[x+base]={inf:x+base,pres:a(pres),imp:x+imp,fut:x+fut,s1:x+s1,s2:x+s2,pp:x+pp,ps:[x+q[0],q[1]],aux:o.aux||"avoir",impv:o.iv&&a(o.iv),part:o.part&&x+o.part,sub:o.sub&&a(o.sub),no:o.no}}}
+R("_","être","suis es est sommes êtes sont","ét","ser","-/-","été","f:u",{sub:"sois sois soit soyons soyez soient",iv:"sois soyons soyez",part:"étant"});
+R("_","avoir","ai as a avons avez ont","av","aur","-/-","eu","e:u",{sub:"aie aies ait ayons ayez aient",iv:"aie ayons ayez",part:"ayant"});
+R("_","aller","vais vas va allons allez vont","all","ir","aill/all","allé","all:a",{aux:"être"});
+R("_,dé,re,satis","faire","fais fais fait faisons faites font","fais","fer","fass/fass","fait","f:i");
+R("_,re","dire","dis dis dit disons dites disent","dis","dir","diss/diss","dit","d:i");
+R("_","pouvoir","peux peux peut pouvons pouvez peuvent","pouv","pourr","puiss/puiss","pu","p:u",{no:1});
+R("_","vouloir","veux veux veut voulons voulez veulent","voul","voudr","veuill/voul","voulu","voul:u",{iv:"veuille veuillons veuillez"});
+R("_","savoir","sais sais sait savons savez savent","sav","saur","sach/sach","su","s:u",{iv:"sache sachons sachez",part:"sachant"});
+R("_","devoir","dois dois doit devons devez doivent","dev","devr","doiv/dev","dû","d:u");
+R("_,re,entre","voir","vois vois voit voyons voyez voient","voy","verr","voi/voy","vu","v:i");
+R("_,de,re,par,sur,pro,inter","venir","viens viens vient venons venez viennent","ven","viendr","vienn/ven","venu","v:in",{aux:"être"});
+R("con,pré","venir","viens viens vient venons venez viennent","ven","viendr","vienn/ven","venu","v:in");
+R("_,main,con,ob,re,appar,sou,dé,entre","tenir","tiens tiens tient tenons tenez tiennent","ten","tiendr","tienn/ten","tenu","t:in");
+R("_,ap,com,sur,re,entre","prendre","prends prends prend prenons prenez prennent","pren","prendr","prenn/pren","pris","pr:i");
+R("_,per,pro,re,ad,com,sou,trans,é,dé,o","mettre","mets mets met mettons mettez mettent","mett","mettr","mett/mett","mis","m:i");
+R("_,com,dé,ab","battre","bats bats bat battons battez battent","batt","battr","batt/batt","battu","batt:i");
+R("_,par,se,con","courir","cours cours court courons courez courent","cour","courr","cour/cour","couru","cour:u");
+R("_","mourir","meurs meurs meurt mourons mourez meurent","mour","mourr","meur/mour","mort","mour:i",{aux:"être"});
+R("_,re,é","lire","lis lis lit lisons lisez lisent","lis","lir","lis/lis","lu","l:u");
+R("é,dé,ins,pres,sous,trans,rée","crire","cris cris crit crivons crivez crivent","criv","crir","criv/criv","crit","criv:i");
+R("_,sur,re","vivre","vis vis vit vivons vivez vivent","viv","vivr","viv/viv","vécu","véc:u");
+R("_,pour","suivre","suis suis suit suivons suivez suivent","suiv","suivr","suiv/suiv","suivi","suiv:i");
+R("_","naître","nais nais naît naissons naissez naissent","naiss","naîtr","naiss/naiss","né","naqu:i",{aux:"être"});
+R("_","croire","crois crois croit croyons croyez croient","croy","croir","croi/croy","cru","cr:u");
+R("_","boire","bois bois boit buvons buvez boivent","buv","boir","boiv/buv","bu","b:u");
+R("re,aper,dé,con,per","cevoir","çois çois çoit cevons cevez çoivent","cev","cevr","çoiv/cev","çu","ç:u");
+R("_","valoir","vaux vaux vaut valons valez valent","val","vaudr","vaill/val","valu","val:u");
+R("en,ren","voyer","voie voies voie voyons voyez voient","voy","verr","voi/voy","voyé","voy:a");
+R("_,dé,com","plaire","plais plais plaît plaisons plaisez plaisent","plais","plair","plais/plais","plu","pl:u");
+R("_,sou","rire","ris ris rit rions riez rient","ri","rir","ri/ri","ri","r:i");
+R("_,con","vaincre","vaincs vaincs vainc vainquons vainquez vainquent","vainqu","vaincr","vainqu/vainqu","vaincu","vainqu:i");
+R("_","résoudre","résous résous résout résolvons résolvez résolvent","résolv","résoudr","résolv/résolv","résolu","résol:u");
+// pattern families
+const add=(inf,o)=>V[inf]=Object.assign({inf,aux:"avoir"},o);
+sp("partir repartir sortir ressortir sentir ressentir pressentir consentir mentir démentir dormir endormir servir desservir").forEach(i=>{const b=i.slice(0,-2),c=b.slice(0,-1);add(i,{pres:[c+"s",c+"s",c+"t",b+"ons",b+"ez",b+"ent"],imp:b,fut:i,s1:b,s2:b,pp:i.slice(0,-1),ps:[b,"i"],aux:/(partir|sortir)$/.test(i)?"être":"avoir"})});
+sp("ouvrir rouvrir couvrir découvrir recouvrir offrir souffrir").forEach(i=>{const b=i.slice(0,-2);add(i,{pres:["e","es","e","ons","ez","ent"].map(e=>b+e),imp:b,fut:i,s1:b,s2:b,pp:i.slice(0,-3)+"ert",ps:[b,"i"]})});
+sp("conduire reconduire introduire produire réduire séduire traduire déduire construire détruire instruire cuire").forEach(i=>{const c=i.slice(0,-2);add(i,{pres:[c+"s",c+"s",c+"t",c+"sons",c+"sez",c+"sent"],imp:c+"s",fut:i.slice(0,-1),s1:c+"s",s2:c+"s",pp:c+"t",ps:[c+"s","i"]})});
+sp("craindre plaindre contraindre peindre dépeindre joindre rejoindre éteindre atteindre").forEach(i=>{const c=i.slice(0,-3),g=i.slice(0,-4)+"gn";add(i,{pres:[c+"s",c+"s",c+"t",g+"ons",g+"ez",g+"ent"],imp:g,fut:i.slice(0,-1),s1:g,s2:g,pp:i.slice(0,-4)+"nt",ps:[g,"i"]})});
+sp("connaître reconnaître méconnaître paraître apparaître disparaître comparaître").forEach(i=>{const c=i.slice(0,-5);add(i,{pres:[c+"ais",c+"ais",c+"aît",c+"aissons",c+"aissez",c+"aissent"],imp:c+"aiss",fut:c+"aîtr",s1:c+"aiss",s2:c+"aiss",pp:c+"u",ps:[c,"u"]})});
+// regular verbs
+const C="[^aeiouyéèêâîôûh]",EX=/^(acheter|racheter|geler|dégeler|congeler|peler|modeler|marteler|haleter|crocheter|fureter|déceler|receler|celer|démanteler|ciseler)$/;
+function reg(inf){const v={inf,reg:1,aux:"avoir"},s=inf.slice(0,-2),t=inf.slice(-2);
+if(t=="er"){let s0=s,f=0;v.cg=/[cg]er$/.test(inf);
+if(/(el|et)er$/.test(inf)&&!EX.test(inf)){s0=s+s.slice(-1);f=1}
+else if(new RegExp("e"+C+"$").test(s)){s0=s.replace(/e(.)$/,"è$1");f=1}
+else if(new RegExp("é"+C+"{1,2}$").test(s))s0=s.replace(new RegExp("é("+C+"{1,2})$"),"è$1");
+if(/y$/.test(s)){s0=s.slice(0,-1)+"i";f=1}
+Object.assign(v,{pres:[s0+"e",s0+"es",s0+"e",Jn(s,"ons",v.cg)+"ons",s+"ez",s0+"ent"],imp:s,fut:f?s0+"er":inf,s1:s0,s2:s,pp:s+"é",ps:[s,"a"]})}
+else if(t=="ir")Object.assign(v,{pres:["is","is","it","issons","issez","issent"].map(e=>s+e),imp:s+"iss",fut:inf,s1:s+"iss",s2:s+"iss",pp:s+"i",ps:[s,"i"]});
+else Object.assign(v,{pres:[s+"s",s+"s",/d$/.test(s)?s:s+"t",s+"ons",s+"ez",s+"ent"],imp:s,fut:inf.slice(0,-1),s1:s,s2:s,pp:s+"u",ps:[s,"i"]});
+return v}
+// build tenses
+function build(v){const c=v.cg,T={},et=v.aux=="être";
+T["Présent"]=v.pres;
+T["Imparfait"]=sp("ais ais ait ions iez aient").map(e=>Jn(v.imp,e,c)+e);
+T["Passé simple"]=sp(E[v.ps[1]]).map(e=>Jn(v.ps[0],e,c)+e);
+T["Futur simple"]=sp("ai as a ons ez ont").map(e=>v.fut+e);
+T["Conditionnel présent"]=sp("ais ais ait ions iez aient").map(e=>v.fut+e);
+T["Subjonctif présent"]=v.sub||[v.s1+"e",v.s1+"es",v.s1+"e",v.s2+"ions",v.s2+"iez",v.s1+"ent"];
+T["Passé composé"]=sp(et?"suis es est sommes êtes sont":"ai as a avons avez ont").map((a,i)=>a+" "+v.pp+(et?(i<3?"(e)":"(e)s"):""));
+let t=v.pres[1];if(/(es|as)$/.test(t)&&t!="as")t=t.slice(0,-1);
+T["Impératif"]=v.no?null:(v.impv||[t,v.pres[3],v.pres[4]]);
+return{T,part:v.part||v.pres[3].slice(0,-3)+"ant"}}
+function forms(v){if(v.F)return v.F;const b=build(v),s=new Set([v.inf,b.part]);
+for(const k in b.T)if(k!="Passé composé"&&b.T[k])b.T[k].forEach(x=>s.add(x));
+["","e","s","es"].forEach(x=>s.add(v.pp+x));return v.F=[...s]}
+// find verb from any form
+function find(raw){const w=raw.toLowerCase().replace(/’/g,"'").split(/[\s']+/).filter(Boolean).pop();if(!w)return{w:"",r:[]};
+for(const l of[0,1]){let r=Object.values(V).filter(v=>forms(v).some(f=>eq(f,w,l)));
+if(r.length)return{w,r};
+const c=new Set([w]);
+for(let k=0;k<9&&w.length-k>=2;k++){const s=w.slice(0,w.length-k);
+[s,s.replace(/ç$/,"c"),s.replace(/i$/,"y"),s.replace(/(.)\1$/,"$1"),s.replace(/è/,"e"),s.replace(/è/,"é"),s.replace(/ge$/,"g")].forEach(x=>["er","ir","re","r","e",""].forEach(e=>c.add(x+e)))}
+r=[...c].filter(x=>x.length>3&&/(er|ir|re)$/.test(x)&&!V[x]).map(reg).filter(v=>forms(v).some(f=>eq(f,w,l)));
+if(r.length)return{w,r:r.slice(0,4),g:1}}
+return{w,r:[]}}
+// UI
+const $=id=>document.getElementById(id),PR=["je","tu","il/elle","nous","vous","ils/elles"];
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const el=(i,f,sub)=>{const q=sub?"que ":"";if(i==0&&/^[aeiouyhâàéèêîôû]/i.test(f))return q+"j’";if(sub&&(i==2||i==5))return"qu’"+(i==5?"ils ":"il ");return q+["je","tu","il","nous","vous","ils"][i]+" "};
+let S={};
+function go(q){q=(q||"").trim();$("q").value=q;if(!q)return;S=find(q);
+if(!S.r.length){$("out").innerHTML='<p class="empty">No verb found for “'+esc(q)+'”. Check the spelling or try the infinitive.</p>';return}
+pick(0)}
+function pick(n){const{w,r,g}=S,v=r[n],b=build(v),hit=x=>eq(x.split(" ").pop().replace(/\(e\)/g,""),w,1),wh=[];
+let h=r.length>1?'<div class="row"><span>Several verbs match:</span>'+r.map((x,i)=>'<button data-i="'+i+'"'+(i==n?' class="on"':'')+'>'+x.inf+'</button>').join("")+'</div>':"";
+let grid="";
+for(const k in b.T){const a=b.T[k];if(!a)continue;const sub=k.startsWith("Subj"),im=k=="Impératif";
+grid+='<section class="t"><h3>'+k+'</h3>'+a.map((f,i)=>{const ii=im?[1,3,4][i]:i,x=hit(f);if(x&&k!="Passé composé")wh.push(k.toLowerCase()+" – "+PR[ii]);
+return'<div>'+(im?"":el(ii,f,sub))+'<b'+(x?' class="m"':'')+'>'+f+'</b></div>'}).join("")+'</section>'}
+if(eq(v.inf,w,1))wh.push("infinitive");
+if(eq(b.part,w,1))wh.push("present participle");
+if(["","e","s","es"].some(x=>eq(v.pp+x,w,1)))wh.push("past participle");
+h+='<div class="head"><h2>'+v.inf+'</h2><div class="pills"><span>Auxiliary: <b>'+v.aux+'</b></span><span>Past participle: <b>'+v.pp+'</b></span><span>Present participle: <b>'+b.part+'</b></span></div>'
++'<div class="found">“'+esc(w)+'” → '+[...new Set(wh)].join("; ")+'</div>'
++(g?'<div class="note">Not in my irregular-verb list, so it is conjugated as a regular verb. Double-check if you think it may be irregular.</div>':'')+'</div><div class="grid">'+grid+'</div>';
+$("out").innerHTML=h}
+const VD=sp("parler aimer aller venir prendre voir savoir vouloir pouvoir faire dire mettre partir finir attendre écrire vivre connaître comprendre apprendre");
+const POP=[["Essentials","être avoir aller faire"],["Very common","pouvoir vouloir savoir devoir voir venir prendre mettre dire"],["Regular patterns","parler finir vendre manger"]];
+function home(){const i=VD[Math.floor(Date.now()/864e5)%VD.length],v=V[i]||reg(i),b=build(v);
+$("out").innerHTML='<div class="head"><span class="tag">Verb of the day</span><h2>'+i+'</h2><div class="pills"><span>Auxiliary: <b>'+v.aux+'</b></span><span>Past participle: <b>'+v.pp+'</b></span></div><div class="vl">'+b.T["Présent"].map((f,k)=>'<div>'+el(k,f)+'<b>'+f+'</b></div>').join("")+'</div><button data-q="'+i+'">Full conjugation →</button></div>'
++POP.map(g=>'<h4 class="sec">'+g[0]+'</h4><div class="chips">'+sp(g[1]).map(x=>'<button data-q="'+x+'">'+x+'</button>').join("")+'</div>').join("")
++'<div class="tips"><div><b>Search any form</b>Type “vont”, “mangeons” or “j’ai vu” and it finds the verb for you.</div><div><b>Eight tenses</b>Présent, imparfait, passé simple, futur, passé composé, conditionnel, subjonctif and impératif.</div><div><b>See the match</b>The form you searched for is highlighted in orange in its table.</div></div>'}
+document.querySelector("h1").onclick=()=>{$("q").value="";home()};
+home();
+$("go").onclick=()=>go($("q").value);
+$("q").addEventListener("keydown",e=>{if(e.key=="Enter")go($("q").value)});
+document.addEventListener("click",e=>{const d=e.target.dataset||{};if(d.q)go(d.q);if(d.i!=null)pick(+d.i)});
+</script>
+</body>
+</html>
